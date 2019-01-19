@@ -10,12 +10,10 @@
 
 ##
 # Set up build directory
-BLDIR=build
-chdir $HOME
-mkdir $BLDIR
-git clone https://github.com/cdarwin/simple_status.git $BLDIR
-chdir $BLDIR
-export DIR=$(pwd)
+
+
+go get github.com/parallelcointeam/simple_status
+cd $HOME/go/src/github.com/parallelcointeam/simple_status
 
 ## 
 # We know where generate_cert.go lives when installed from ppa
@@ -24,26 +22,17 @@ export DIR=$(pwd)
 #export CRT=$(sudo find / -name generate_cert.go)
 
 ##
-# Install Go if it isn't already
-if [ ! $(go version) ]; then
-  sudo /bin/sh -c 'echo "y" | add-apt-repository ppa:gophers/go'
-  sudo apt-get -yf update
-  sudo apt-get -yf install golang-stable
-fi
+
 
 ##
 # Build package, generate certs, and modify permissions
-go build simple_status
-#go build $CRT
-go build /usr/lib/go/src/pkg/crypto/tls/generate_cert.go
-./generate_cert
-sudo chown :www-data key.pem
-sudo chmod g+r key.pem
-
+go install
 ##
 # This is just one way to deal changing the default configuration of the package
 # we're using upstart here and setting some runtime flags
-sed -i -e 's,TLS=,&"-ssl",' -e 's,PORT=,&"-p :9090",' -e 's,TOKEN=,&"-t foobarbaz",' \
-  -e "s,\(DIR=\).*,\1\"$DIR\"," simple_status
-sudo cp simple_status.conf /etc/init/simple_status.conf
-sudo start simple_status
+
+sudo cp $HOME/go/src/github.com/parallelcointeam/simple_status/simple_status.conf /etc/systemd/system/simple_status.service
+sudo systemctl enable simple_status.service
+sudo systemctl daemon_restart
+sudo systemctl start simple_status.service
+sudo systemctl status simple_status.service
